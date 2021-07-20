@@ -73,20 +73,22 @@ durham_map_interactive_2 <- geo_join(durham_tracts,durham_median_year_built,"TRA
 pal2 <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive_2$B25035_001E,reverse = TRUE)
 
 #Creating a popup
-popup_durham_median_year <- paste0("Census Tract: ",as.character(durham_map_interactive$NAME),"<br/> Median Year of Construction: ",as.character(durham_map_interactive_2$B25035_001E))
+popup_durham_median_year <- paste0("Census Tract: ",as.character(durham_map_interactive_2$NAME),"<br/> Median Year of Construction: ",as.character(durham_map_interactive_2$B25035_001E))
 
 #Creating the map 
 durham_interactive_median_year_built_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive_2,fillColor =~pal2(durham_map_interactive_2$B25035_001E),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_median_year) %>% addLegend(pal=pal2,values=durham_map_interactive_2$B25035_001E,position = "bottomright",title = "Median year that <br/> structures were built <br/> in Durham County")
 
 
-
+durham_interactive_median_year_built_map
 
 ```
 
 
 #Exporting interactive maps as a widget
 ```{r}
+
 saveWidget(durham_interactive_median_year_built_map,"durham_interactive_median_year_built_map.html",selfcontained = TRUE)
+write.csv(durham_median_year_built,"durham_median_year_built.csv")
 ```
 
 
