@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "6/7/2021"
+output: html_document
+---
+
+#Pull data on number of people in each north carolina census tract who don't have health insurance. 
+```{r}
+nc_healthcare_65_older <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B27010_066E"),region="tract",regionin="state:37")
+nc_healthcare_35_64 <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B27010_050E"),region="tract",regionin="state:37")
+nc_healthcare_19_34 <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B27010_033E"),region="tract",regionin="state:37")
+nc_healthcare_under_19 <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B27010_017E"),region="tract",regionin="state:37")
+
+
+
+
+```
+
+
+#Left_join those four dataframes and make a new column that is their sum, aka the total number of people in each census tract who don't have health insurance, regardless of age. 
+```{r}
+boo <- left_join(nc_healthcare_65_older,nc_healthcare_35_64)
+
+boo2 <- left_join(boo,nc_healthcare_19_34)
+
+boo3 <- left_join(boo2,nc_healthcare_under_19)
+
+nc_total_without_healthcare <- boo3 %>% mutate(total_without_healthcare = B27010_066E+B27010_050E+B27010_033E+B27010_017E)
+```
+
+
+
+
+
+#Adjust this graph per capita.  
+```{r}
+#Make a table showing the total number of people in each census tract
+nc_total <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B01003_001E"),region="tract",regionin="state:37")
+
+#Join nc_total with nc_total_without_healthcare and create a new column dividing the total number of people in each census tract without healthcare (total_without_healthcare) by the total number of people in each census tract (B01003_001E)
+nc_healthcare_adjusted<- left_join(nc_total_without_healthcare,nc_total) %>% mutate(healthcare_adjusted = total_without_healthcare/B01003_001E) 
+
+#Now get rid of the original alphabet soup columns. 
+nc_healthcare_adjusted <- nc_healthcare_adjusted %>% select(state, county, tract,healthcare_adjusted)
+
+#View(nc_healthcare_adjusted)
+```
+
+#Join this with each of the shapefiles you made. This will connect that data solely to the census tracts in each county. 
+```{r}
+#Rename some columns, so joining is easier
+#orange_census_tracts <- orange_census_tracts %>% rename(tract = TRACTCE)
+#durham_census_tracts <-durham_census_tracts %>% rename(tract = TRACTCE)
+#wake_census_tracts <- wake_census_tracts %>% rename(tract = TRACTCE)
+
+#Filter only for each county's census tracts. 
+orange_healthcare_adjusted <- nc_healthcare_adjusted %>% filter(county == "135")
+wake_healthcare_adjusted <- nc_healthcare_adjusted %>% filter(county == "183")
+
+#We came back here and changed two things to make it easier for readers to comprehend our interactive map: limiting numbers to 2 digits after the decimal point and converting from decimal to percent. 
+durham_healthcare_adjusted <- nc_healthcare_adjusted %>% filter(county == "063") %>% mutate(healthcare_adjusted_percent = healthcare_adjusted*100)
+
+  durham_healthcare_adjusted$healthcare_adjusted_percent <- round(durham_healthcare_adjusted$healthcare_adjusted_percent,digits = 2) 
+
+
+
+#Making dataframes
+orange_map4 <- inner_join(orange_census_tracts,orange_healthcare_adjusted)
+durham_map4 <- inner_join(durham_census_tracts,durham_healthcare_adjusted)
+wake_map4 <- inner_join(wake_census_tracts,wake_healthcare_adjusted)
+
+
+
+```
+
+#Creating static maps for each county 
+```{r}
+#Durham
+ggplot(orange_map4)+geom_sf(aes(fill=healthcare_adjusted))+theme_pander()+theme(axis.text = element_blank(),axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",direction=1,name ="Residents without health insurance (%)") + labs(title = "Residents without health insurance in Orange County",caption = "Source: U.S. Census/ACS 2019")
+
+#Orange
+ggplot(durham_map4)+geom_sf(aes(fill=healthcare_adjusted))+theme_pander()+theme(axis.text = element_blank(),axis.ticks = element_blank())+theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",direction=1,name ="Residents without health insurance (%)") + labs(title = "Residents without health insurance in Durham County",caption = "Source: U.S. Census/ACS 2019")
+
+#Wake
+ggplot(wake_map4)+geom_sf(aes(fill=healthcare_adjusted))+theme_pander()+theme(axis.text = element_blank(),axis.ticks = element_blank())+   theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",direction=1,name ="Residents  without health insurance (%)") + labs(title = "Residents without health insurance in Wake County",caption = "Source: U.S. Census/ACS 2019")
+```
+
+
+
+
+
+#Plotting Durham on interactive map. 
+```{r}
+
+#Outlining the tracts 
+durham_tracts <- tracts(state = "NC",county = "Durham",cb = T)
+
+#Combining the dataframes
+durham_map_interactive3 <- geo_join(durham_tracts,durham_healthcare_adjusted,"TRACTCE","tract") %>% filter(NAME!="9801")
+
+
+#Creating a color palette 
+pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive3$healthcare_adjusted_percent)
+
+#Creating a popup
+popup_durham_healthcare <- paste0("Census Tract: ",as.character(durham_map_interactive3$NAME),"<br/> Residents without health insurance (%) :" ,as.character(durham_map_interactive3$healthcare_adjusted_percent))
+
+#Creating the map 
+durham_interactive_health_insurance_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive3,fillColor =~pal(durham_map_interactive3$healthcare_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_healthcare) %>% addLegend(pal=pal,values=durham_map_interactive3$healthcare_adjusted_percent,position = "bottomright",title = "<br/> Residents without <br/> health insurance  <br/> in Durham County (%)")
+
+
+
+
+```
+
+#Exporting interactives & tables that we need
+```{r}
+saveWidget(durham_interactive_health_insurance_map,"durham_interactive_health_insurance_map.html",selfcontained = TRUE)
+write.csv(durham_healthcare_adjusted,"durham_healthcare_adjusted.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
