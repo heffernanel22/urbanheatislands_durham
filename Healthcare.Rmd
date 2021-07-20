@@ -118,7 +118,7 @@ durham_interactive_health_insurance_map
 #Exporting interactives & tables that we need
 ```{r}
 saveWidget(durham_interactive_health_insurance_map,"durham_interactive_health_insurance_map.html",selfcontained = TRUE)
-write.csv(durham_healthcare_adjusted,"durham_healthcare_adjusted.csv")
+write.csv(durham_map_interactive3,"durham_healthcare_adjusted.csv")
 ```
 
 
