@@ -104,12 +104,13 @@ durham_map_interactive3 <- geo_join(durham_tracts,durham_healthcare_adjusted,"TR
 pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive3$healthcare_adjusted_percent)
 
 #Creating a popup
-popup_durham_healthcare <- paste0("Census Tract: ",as.character(durham_map_interactive3$NAME),"<br/> Residents without health insurance (%) :" ,as.character(durham_map_interactive3$healthcare_adjusted_percent))
+popup_durham_healthcare <- paste0("Census Tract: ",as.character(durham_map_interactive3$NAME),"<br/> Residents without health insurance (%): " ,as.character(durham_map_interactive3$healthcare_adjusted_percent))
 
 #Creating the map 
 durham_interactive_health_insurance_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive3,fillColor =~pal(durham_map_interactive3$healthcare_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_healthcare) %>% addLegend(pal=pal,values=durham_map_interactive3$healthcare_adjusted_percent,position = "bottomright",title = "<br/> Residents without <br/> health insurance  <br/> in Durham County (%)")
 
 
+durham_interactive_health_insurance_map
 
 
 ```

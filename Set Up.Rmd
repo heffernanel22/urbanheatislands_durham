@@ -14,6 +14,7 @@ library(censusapi)
 library(ggthemes)
 library(tidyverse)
 library(stringr)
+library(htmlwidgets)
 p_load(leaflet,glue,dplyr,sf,tmap,tmaptools,tidycensus,ggmap,htmltools, htmlwidgets)
 p_load_gh(c("walkerke/tigris","bhaskarvk/leaflet.extras"))
 options(tigris_use_cache = TRUE)
@@ -43,8 +44,8 @@ orange_census_tracts <- tracts ("NC",county = "Orange",year = 2019, class = "sf"
 #apis <-listCensusApis()
 #acs_vars <-listCensusMetadata(name ="acs/acs5",type ="variables",vintage = "2019")
 
-write.csv(acs_vars,"acs_var.csv")
-write.csv(apis,"apis.csv")
+#write.csv(acs_vars,"acs_var.csv")
+#write.csv(apis,"apis.csv")
 
 ```
 

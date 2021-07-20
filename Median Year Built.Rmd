@@ -88,7 +88,7 @@ durham_interactive_median_year_built_map
 ```{r}
 
 saveWidget(durham_interactive_median_year_built_map,"durham_interactive_median_year_built_map.html",selfcontained = TRUE)
-write.csv(durham_median_year_built,"durham_median_year_built.csv")
+write.csv(durham_map_interactive_2,"durham_median_year_built.csv")
 ```
 
 
