@@ -1,0 +1,117 @@
+---
+title: '# of Black residents (Mapped)'
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "6/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+#Create a dataframe showing the total number of Black people in each census tract in the state.
+```{r}
+nc_race <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B02009_001E"),region="tract",regionin="state:37")
+```
+
+
+#Adjust this graph per capita. 
+```{r}
+#Make a table showing the total number of people per census tract in NC
+nc_total <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B01003_001E"),region="tract",regionin="state:37")
+
+#Join nc_total with nc_race and create a new column dividing the total number of Black people in each tract (B02009_001E) by the total number of people in each tract (B01003_001E). Black is defined as "Black alone or in combination with one or more races," since that is the definition the census api key used.  
+nc_race_adjusted <- left_join(nc_total,nc_race) %>% mutate(black_adjusted = B02009_001E/B01003_001E)
+
+#Now get rid of the original alphabet soup columns. 
+nc_race_adjusted <- nc_race_adjusted %>% select(state, county, tract,black_adjusted)
+ 
+#View(nc_race_adjusted)
+```
+
+
+
+#Join this with each of the shapefiles you made in the set-up file This will connect that data solely to the census tracts in those three counties. 
+```{r}
+#Rename some columns, so joining is easier
+orange_census_tracts <- orange_census_tracts %>% rename(tract = TRACTCE)
+durham_census_tracts <-durham_census_tracts %>% rename(tract = TRACTCE)
+wake_census_tracts <- wake_census_tracts %>% rename(tract = TRACTCE)
+
+#Filter only for each county's census tracts. 
+orange_race_adjusted <- nc_race_adjusted %>% filter(county == "135")
+durham_race_adjusted <- nc_race_adjusted %>% filter(county == "063") %>% mutate(black_adjusted_percent = black_adjusted*100)
+  durham_race_adjusted$black_adjusted_percent <- round(durham_race_adjusted$black_adjusted_percent,digits = 2) 
+  #I came back and made some edits here to pretty up the interactive map I made later. Changing from decimal to percent and only allowing two digits after the decimal 
+wake_race_adjusted <- nc_race_adjusted %>% filter(county == "183")
+
+
+#Joining
+orange_map1 <- inner_join(orange_census_tracts,orange_race_adjusted)
+durham_map1 <- inner_join(durham_census_tracts,durham_race_adjusted)
+wake_map1 <- inner_join(wake_census_tracts,wake_race_adjusted)
+
+
+
+```
+
+#Plotting data for each Triangle county on static maps.
+```{r}
+
+
+#Orange
+ggplot(orange_map1,)+geom_sf(aes(fill=black_adjusted))+theme_pander()+ theme(panel.grid.major=element_line(colour="transparent"))+ theme(axis.text = element_blank(),axis.ticks = element_blank())+                                                                   scale_fill_distiller(palette="Blues",direction=1,name ="% of residents that are Black") + labs(title = "Black residents in Orange County census tracts ",caption = "Source: U.S. Census/ACS 2019")
+
+#Durham
+ggplot(durham_map1)+geom_sf(aes(fill=black_adjusted))+theme_pander()+ theme(axis.text = element_blank(),axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",direction=1,name ="% of residents that are Black") + labs(title = "Black residents in Durham County census tracts",caption = "Source: U.S. Census/ACS 2019")
+
+#Wake
+ggplot(wake_map1)+geom_sf(aes(fill=black_adjusted))+theme_pander()+ theme(axis.text = element_blank(), axis.ticks = element_blank())+     theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",direction=1,name ="% of residents that are Black") + labs(title = "Black residents in Wake County census tracts",caption = "Source: U.S. Census/ACS 2019")
+
+
+```
+#Note to self: Grey tracts have NO residents. In Durham, this tract is mainly RTP & the Durham freeway. In Wake, the tracts are the Airport & William B. Umstead State Park. 
+
+
+#Plotting Durham on interactive map. 
+```{r}
+
+#Outlining the tracts 
+durham_tracts <- tracts(state = "NC",county = "Durham",cb = T)
+
+#Combining the dataframes
+durham_map_interactive1 <- geo_join(durham_tracts,durham_race_adjusted,"TRACTCE","tract") %>% filter(NAME!="9801")
+
+#Creating a color palette 
+pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive1$black_adjusted_percent)
+
+#Creating a popup
+popup_durham_black_pop <- paste0("Census Tract: ",as.character(durham_map_interactive1$NAME),"<br/> Residents that are Black (%) :" ,as.character(durham_map_interactive1$black_adjusted_percent))
+
+#Making the map 
+durham_interactive_race_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive1,fillColor =~pal(durham_map_interactive1$black_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_Black_pop) %>% addLegend(pal=pal,values=durham_map_interactive1$black_adjusted_percent,position = "bottomright",title = "<br/> Distribution of <br/> Black residents <br/> in Durham County (%)")
+
+durham_interactive_race_map
+
+ 
+```
+
+
+#Exporting your interactive map
+```{r}
+library(htmlwidgets)
+saveWidget(durham_interactive_race_map,"durham_interactive_race_map.html",selfcontained = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,93 @@
+---
+title: "Median Year"
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "6/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Pull dataframe showing the median year units were built in the Triangle, by census tract. 
+```{r}
+nc_median_year_built <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B25035_001E"),region="tract",regionin="state:37")
+```
+
+
+#Join this with each of the shapefiles you previously made. This will connect that data solely to the census tracts in those three counties.
+```{r}
+#Rename some columns, so joining is easier
+#orange_census_tracts <- orange_census_tracts %>% rename(tract = TRACTCE)
+#durham_census_tracts <-durham_census_tracts %>% rename(tract = TRACTCE)
+#wake_census_tracts <- wake_census_tracts %>% rename(tract = TRACTCE)
+
+
+#Filter only for each county's census tracts. 
+orange_median_year_built <- nc_median_year_built %>% filter(county == "135",B25035_001E!="-666666666")
+durham_median_year_built <- nc_median_year_built %>% filter(county == "063",B25035_001E!="-666666666")
+wake_median_year_built <- nc_median_year_built %>% filter(county == "183",B25035_001E!="-666666666")
+
+#Note to self: There's somemissing data in the orange_median_year_built that IS available on census reporter. Plug in the data from census reporter. Any other missing values are places without data available on median on year or places without housing units at all -- such as the RDU airport. 
+
+
+
+#Now join those dataframes with your census tract maps. 
+durham_map3 <- inner_join(durham_census_tracts,durham_median_year_built)
+wake_map3 <- inner_join(wake_census_tracts,wake_median_year_built) 
+orange_map3 <- inner_join(orange_census_tracts,orange_median_year_built)
+
+
+
+```
+
+
+#Plotting median year built for each county on a static map. 
+
+```{r}
+#Orange
+ggplot(orange_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+     theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year") + labs(title = "Median Year Structures Were Built in Orange County",caption = "Source: U.S. Census/ACS 2019")
+
+#Durham
+ggplot(durham_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year Structures Were Built") + labs(title = "Median Year") + labs(title = "Median Year Structures Were Built in Durham County",caption = "Source: U.S. Census/ACS 2019")
+
+#Wake
+ggplot(wake_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year Structures Were Built") + labs(title = "Median Year Structures Were Built") + labs(title = "Median Year",caption = "Source: U.S. Census/ACS 2019")
+
+```
+
+
+
+
+
+#Plotting Interactive Data for Durham
+```{r}
+#Outlining the tracts 
+durham_tracts <- tracts(state = "NC",county = "Durham",cb = T)
+
+#Combining the dataframes
+durham_map_interactive_2 <- geo_join(durham_tracts,durham_median_year_built,"TRACTCE","tract") %>% filter(NAME!="9801",TRACTCE!="001503")
+#We've removed data for census tracts covering Duke's East Campus & the Durham Freeway. 
+
+#Creating a color palette 
+pal2 <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive_2$B25035_001E,reverse = TRUE)
+
+#Creating a popup
+popup_durham_median_year <- paste0("Census Tract: ",as.character(durham_map_interactive$NAME),"<br/> Median Year of Construction: ",as.character(durham_map_interactive_2$B25035_001E))
+
+#Creating the map 
+durham_interactive_median_year_built_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive_2,fillColor =~pal2(durham_map_interactive_2$B25035_001E),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_median_year) %>% addLegend(pal=pal2,values=durham_map_interactive_2$B25035_001E,position = "bottomright",title = "Median year that <br/> structures were built <br/> in Durham County")
+
+
+
+
+```
+
+
+#Exporting interactive maps as a widget
+```{r}
+saveWidget(durham_interactive_median_year_built_map,"durham_interactive_median_year_built_map.html",selfcontained = TRUE)
+```
+
+
+
