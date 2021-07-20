@@ -1,0 +1,77 @@
+---
+title: "Heat Maps"
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "6/3/2021"
+output: html_document
+---
+
+#Load packages & make sure your census key is loaded -- (I don't entirely know what all of this means. I just copy & paste the set-up that my professor recommended)
+```{r}
+#Load packages
+library(tigris)
+library(pacman)
+library(censusapi)
+library(ggthemes)
+library(tidyverse)
+library(stringr)
+p_load(leaflet,glue,dplyr,sf,tmap,tmaptools,tidycensus,ggmap,htmltools, htmlwidgets)
+p_load_gh(c("walkerke/tigris","bhaskarvk/leaflet.extras"))
+options(tigris_use_cache = TRUE)
+
+
+#Load census key
+census_key <- "ee879694947d7f51fb7006bed7d04d8d980a42fc"
+Sys.setenv(CENSUS_KEY=census_key)
+install = TRUE
+```
+
+
+#Make shapefiles for Durham, Wake, and Orange County. This is just the outlines. 
+```{r}
+durham_census_tracts <-tracts("NC", county = "Durham", year = 2019,class = "sf")
+                          
+wake_census_tracts <-tracts("NC", county = "Wake", year = 2019,class = "sf")  
+
+orange_census_tracts <- tracts ("NC",county = "Orange",year = 2019, class = "sf")
+
+
+```
+
+
+#KEEP THESE TWO VARIABLES! "apis" shows you the different surveys you can pull from (i.e. ACS, Decennial Census) & acs_vars shows you the many different variables you can pull from the American Community Survey (2019)
+```{r}
+#apis <-listCensusApis()
+#acs_vars <-listCensusMetadata(name ="acs/acs5",type ="variables",vintage = "2019")
+
+write.csv(acs_vars,"acs_var.csv")
+write.csv(apis,"apis.csv")
+
+```
+
+#List of variables and vintages used
+```{r}
+#These all came from the American Community Survey 2019  (acs/acs5,  vintage = "2019")
+
+#Variables Used: 
+
+
+#B02009_001E: Total number BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES
+#For adjustment: B01003_001E: Total population 
+
+
+
+#B25035_001E: Median year structure built 
+
+
+#B27010_066E: Total number 65 and older without health insurance
+#B27010_050E: Total number 35 to 64 without health insurance
+#B27010_033E: Total number 19 to 34 without health insurance
+#B27010_017E: Total number under 19 without health insurance
+#For adjustment: 01003_001E: Total population 
+
+
+```
+
+
+
+
