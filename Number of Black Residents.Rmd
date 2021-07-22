@@ -33,7 +33,7 @@ nc_race_adjusted <- nc_race_adjusted %>% select(state, county, tract,black_adjus
 
 
 
-#Join this with each of the shapefiles you made in the set-up file This will connect that data solely to the census tracts in those three counties. 
+#Join this with each of the shapefiles you made in the set-up file.This will connect that data solely to the census tracts in those three counties. 
 ```{r}
 #Rename some columns, so joining is easier
 orange_census_tracts <- orange_census_tracts %>% rename(tract = TRACTCE)
@@ -59,8 +59,6 @@ wake_map1 <- inner_join(wake_census_tracts,wake_race_adjusted)
 
 #Plotting data for each Triangle county on static maps.
 ```{r}
-
-
 #Orange
 ggplot(orange_map1,)+geom_sf(aes(fill=black_adjusted))+theme_pander()+ theme(panel.grid.major=element_line(colour="transparent"))+ theme(axis.text = element_blank(),axis.ticks = element_blank())+                                                                   scale_fill_distiller(palette="Blues",direction=1,name ="% of residents that are Black") + labs(title = "Black residents in Orange County census tracts ",caption = "Source: U.S. Census/ACS 2019")
 
@@ -91,11 +89,20 @@ pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive1$blac
 popup_durham_black_pop <- paste0("Census Tract: ",as.character(durham_map_interactive1$NAME),"<br/> Residents that are Black (%): " ,as.character(durham_map_interactive1$black_adjusted_percent))
 
 #Making the map 
-durham_interactive_race_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive1,fillColor =~pal(durham_map_interactive1$black_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_black_pop) %>% addLegend(pal=pal,values=durham_map_interactive1$black_adjusted_percent,position = "bottomright",title = "<br/> Distribution of <br/> Black residents <br/> in Durham County (%)")
+durham_interactive_race_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive1,fillColor =~pal(durham_map_interactive1$black_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_black_pop) %>% addLegend(pal=pal,values=durham_map_interactive1$black_adjusted_percent,position = "bottomright",title = "<br/> Distribution of <br/> Black residents <br/> in Durham County (%)") 
 
 
  
 ```
+
+
+#Finding the 15 Blackest census tracts and least Black census tracts We will use this later when we outline these tracts on Dr. Doran's map.  
+```{r}
+#Arranging the dataframe in descending order of its Black population: 
+durham_race_adjusted %>% arrange(desc(black_adjusted_percent))
+```
+
+
 
 
 #Exporting your interactive map

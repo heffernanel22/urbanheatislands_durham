@@ -55,7 +55,7 @@ orange_census_tracts <- tracts ("NC",county = "Orange",year = 2019, class = "sf"
 
 #Variables Used: 
 
-
+#"B02008_001E: Total number WHITE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES 
 #B02009_001E: Total number BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES
 #For adjustment: B01003_001E: Total population 
 

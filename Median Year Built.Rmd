@@ -52,7 +52,7 @@ ggplot(orange_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.tex
 ggplot(durham_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year Structures Were Built") + labs(title = "Median Year") + labs(title = "Median Year Structures Were Built in Durham County",caption = "Source: U.S. Census/ACS 2019")
 
 #Wake
-ggplot(wake_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year Structures Were Built") + labs(title = "Median Year Structures Were Built") + labs(title = "Median Year",caption = "Source: U.S. Census/ACS 2019")
+ggplot(wake_map3)+geom_sf(aes(fill=B25035_001E))+theme_pander()+theme(axis.text = element_blank(), axis.ticks = element_blank())+ theme(panel.grid.major=element_line(colour="transparent"))+scale_fill_distiller(palette="Blues",name ="Median Year") + labs(title = "Median Year Structures Were Built in Wake County") + labs(title = "Median Year Structures Were Built in Wake County",caption = "Source: U.S. Census/ACS 2019")
 
 ```
 
@@ -84,11 +84,11 @@ durham_interactive_median_year_built_map <- leaflet() %>% addProviderTiles("Cart
 ```
 
 
-#Exporting interactive maps as a widget
+#Exporting interactive maps as a widget. Also export a dataframe that you will need in a later .rmd file. 
 ```{r}
 
 saveWidget(durham_interactive_median_year_built_map,"durham_interactive_median_year_built_map.html",selfcontained = TRUE)
-write.csv(durham_map_interactive_2,"durham_median_year_built.csv")
+write.csv(durham_median_year_built,"durham_median_year_built.csv")
 ```
 
 

@@ -110,19 +110,13 @@ popup_durham_healthcare <- paste0("Census Tract: ",as.character(durham_map_inter
 durham_interactive_health_insurance_map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive3,fillColor =~pal(durham_map_interactive3$healthcare_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_healthcare) %>% addLegend(pal=pal,values=durham_map_interactive3$healthcare_adjusted_percent,position = "bottomright",title = "<br/> Residents without <br/> health insurance  <br/> in Durham County (%)")
 
 
-durham_interactive_health_insurance_map
-
-
 ```
 
-#Exporting interactives & tables that we need
+#Exporting interactives & tables that we need for a later .rmd. 
 ```{r}
 saveWidget(durham_interactive_health_insurance_map,"durham_interactive_health_insurance_map.html",selfcontained = TRUE)
-write.csv(durham_map_interactive3,"durham_healthcare_adjusted.csv")
+write.csv(nc_healthcare_adjusted,"nc_health_care_adjusted.csv")
 ```
-
-
-
 
 
 

@@ -1,0 +1,208 @@
+---
+title: "Correlating race and UHI"
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "7/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Load in the dataframe of selected metrics for all Durham census tracts. Fix all the problems with your dataframe. 
+```{r}
+#This dataframe came from the Durham Neighborhood Compass: https://compass.durhamnc.gov/en 
+durham_tract_metrics <- read_csv("durham_tract_metrics.csv")
+  
+#Cleaning up the percent and dollar sign symbols that confused the computer. First I went in excel and used the decimal place button to make sure, in each column, every cell has the same number of digits. The computer will read these as character strings, making it easier for us to mass edit everything! I also changed the Median household income from a currency (which R will read as a character) to a number (in excel)
+durham_tract_metrics$percent_with_diabetes <- as.double(str_sub(durham_tract_metrics$percent_with_diabetes,1,5))
+durham_tract_metrics$percent_impervious_surface<-as.double(str_sub(durham_tract_metrics$percent_impervious_surface,1,4))
+durham_tract_metrics$percent_canopy_coverage<-as.double(str_sub(durham_tract_metrics$percent_canopy_coverage,1,4))
+
+
+```
+
+#Create a dataframe showing the percentage of people in each durham census tract that are white. You'll use this later to outline the whitest and least white census tracts on Dr. Doren's heat-map. 
+```{r}
+nc_white_population <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B02008_001E"),region="tract",regionin="state:37")
+
+nc_white_population <- left_join(nc_white_population,nc_total) %>% mutate(white_percent = (B02008_001E/B01003_001E)*100)
+
+durham_white_population <- nc_white_population %>% filter(county == "063") %>% arrange(desc(white_percent))
+
+
+
+#Note: White is defined by the census as "white alone or in combination with more other races"
+```
+
+
+#Now we're going to join in health insurance coverage and median year built data that we found in our earlier .rmd files using the ACS 2019. We had to do a lot of cleaning up. We'll start with health insurance. 
+```{r}
+#Basically making a new column in our older health insurance dataframe. This new column will ensure that tracts are named using the same convention from our Durham Compass dataframes. First check out the structure you're working with. 
+str(durham_tract_metrics)
+
+#Splitting the tract column in half and adding decimal points and the word "Tract"
+ durham_without_health_insurance_joining <- nc_healthcare_adjusted %>% mutate(tracts_1 = str_sub(nc_healthcare_adjusted$tract,3,4),tracts_2 = str_sub(nc_healthcare_adjusted$tract,5,6),`Census Tracts` = paste0("Tract ",as.character(tracts_1),".",as.character(tracts_2))) %>% filter(county == "063")
+
+#Realizing that one of the dataframes has numbers written like 06.00 and the other has them written like 6.00. Since they're characters the computer is confused, thinks they're different, and can't join. Let us change them with stringr! 
+durham_tract_metrics$`Census Tracts`<- str_replace_all(durham_tract_metrics$`Census Tracts`,"Tract 0","Tract ")
+durham_without_health_insurance_joining$`Census Tracts`<- str_replace_all(durham_without_health_insurance_joining$`Census Tracts`,"Tract 0","Tract ")
+
+
+#Successful join? (fingers crossed) Update: YAY!!! 
+durham_tract_metrics <- left_join(durham_tract_metrics,durham_without_health_insurance_joining) %>% select(-state,-county,-tract,-tracts_1,-tracts_2)
+
+```
+
+#Now we're going to do the same thing for median year built. 
+```{r}
+#Splitting the tract column in half and adding decimal points and the word "Tract"
+durham_median_year_built_joining <- durham_median_year_built %>% mutate(tracts_1 = str_sub(durham_median_year_built$tract,3,4),tracts_2 = str_sub(durham_median_year_built$tract,5,6),`Census Tracts` = paste0("Tract ",as.character(tracts_1),".",as.character(tracts_2)))
+
+#Realizing that one of the dataframes has numbers written like 06.00 and the other has them written like 6.00. Since they're characters the computer is confused, thinks they're different, and can't join. Let us change them with stringr! 
+durham_tract_metrics$`Census Tracts`<- str_replace_all(durham_tract_metrics$`Census Tracts`,"Tract 0","Tract ")
+durham_median_year_built_joining$`Census Tracts`<- str_replace_all(durham_median_year_built_joining$`Census Tracts`,"Tract 0","Tract ")
+
+#Successful join and make a new column adding up all the columns related to transport. Then you'll have the percentage of people who don't drive to work. 
+ durham_tract_metrics <-left_join(durham_tract_metrics,durham_median_year_built_joining) %>% select(-state,-county,-tract,-tracts_1,-tracts_2) 
+```
+
+#Now we're going to left_join in the dataframe showing the percentage of each census tract that is white. We'll have to make some similar edits. 
+```{r}
+#Splitting the tract column in half and adding decimal points and the word "Tract"
+durham_white_population <- durham_white_population %>% mutate(tracts_1 = str_sub(durham_white_population$tract,3,4),tracts_2 = str_sub(durham_white_population$tract,5,6),`Census Tracts` = paste0("Tract ",as.character(tracts_1),".",as.character(tracts_2)))
+
+#Realizing that one of the dataframes has numbers written like 06.00 and the other has them written like 6.00. Since they're characters the computer is confused, thinks they're different, and can't join. Let us change them with stringr! 
+durham_tract_metrics$`Census Tracts`<- str_replace_all(durham_tract_metrics$`Census Tracts`,"Tract 0","Tract ")
+durham_white_population$`Census Tracts`<- str_replace_all(durham_white_population$`Census Tracts`,"Tract 0","Tract ")
+
+#Successful join. Get rid of columns you don't need and rename the alphabet soup column before you get confused
+durham_tract_metrics <- left_join(durham_tract_metrics,durham_white_population) 
+durham_tract_metrics <- durham_tract_metrics %>% select(-B02008_001E,-B01003_001E,-tracts_1,-tracts_2,-state,-county,-tract) %>% rename(median_year_built = "B25035_001E")
+
+```
+
+
+#Now we're going to plot a bunch of information to see if there is a CORRELATION between the percentage of each census tract's residents who are white & various other metrics. Each dot is a census tract. 
+```{r}
+#Canopy coverage
+ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_canopy_coverage)) + geom_point() + geom_smooth(method = lm) + labs(title = "Canopy cover increases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of land covered by trees")
+
+#Percent impervious surface 
+ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_impervious_surface)) + geom_point() + geom_smooth(method = lm) + labs(title = "Impervious surface decreases  as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of land covered impervious surface")
+
+#Median household income 
+ggplot(durham_tract_metrics,aes(x = white_percent,y =median_household_income)) + geom_point() + geom_smooth(method = lm) + labs(title = "Median household income increases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Median household income")
+
+#Diabetes rates
+ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_with_diabetes)) + geom_point() + geom_smooth(method = lm) + labs(title = "Diabetes rates increase as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of residents with diabetes")
+
+#People without health insurance
+ggplot(durham_tract_metrics,aes(x = white_percent,y = healthcare_adjusted)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of residents without health insurance decreases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of residents without health insurance")
+
+
+#Median year built
+ggplot(durham_tract_metrics,aes(x = white_percent,y = median_year_built)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of older housing units seems relatively the same, regardless of the percentage of white residents")+xlab("Percentage of census tract that is white") + ylab("Median year that structures were built")
+
+```
+
+
+#Finally, we are going to calculate linear regressions for these plots. This will give us the slope (i.e how much more or less likely is your census tract to have this, depending on how white it is). It will also tell us our standard deviation (error rate) and our p-value (Are our findings significant? Or random!)
+```{r}
+attach(durham_tract_metrics)
+
+#Calculating the slope 
+canopy <- lm(white_percent~percent_canopy_coverage)
+impervious <- lm(white_percent~percent_impervious_surface)
+household <- lm(white_percent~median_household_income)
+diabetes <- lm(white_percent~percent_with_diabetes)
+insurance <- lm(white_percent~healthcare_adjusted)
+
+#Checking p-values and standard deviation
+summary(canopy)
+summary(impervious)
+summary(household)
+summary(diabetes)
+summary(insurance)
+
+```
+
+
+
+#Find the census tract with the highest canopy coverage and tell me all about it. Same with the lowest canopy coverage. 
+```{r}
+#Highest canopy coverage
+durham_tract_metrics %>% arrange(desc(percent_canopy_coverage))
+#In tract 16.04, just over 2 percent of surfaces are impervious. 71.6 percent of surfaces are covered with canopy. The median household_income is close to $106,000. 12 percent of people have diabetes. Less than two percent don't have health insurance. It's over four-fifths white. 
+
+#Lowest canopy coverage
+durham_tract_metrics %>% arrange(percent_canopy_coverage)
+#In tract 11, Over 45 percent of surfaces are impervious. 10.8 percent of surfaces are covered with canopy. The median household income is slightly under 40,000. 17.4 percent of residents have diabetes. Over 10 percent don't have health insurance. Only one quarter of the tract is white. 
+
+```
+
+#Find me the ten blackest census tracts. This is just a test map to give us the outlines we will super-impose over our temperature map. Annie will hopefully be able to work with this! 
+```{r}
+
+#Outlining the tracts 
+durham_tracts <- tracts(state = "NC",county = "Durham",cb = T)
+
+#Combining the dataframes
+durham_map_interactive_test <- geo_join(durham_tracts,durham_race_adjusted,"TRACTCE","tract") %>% filter(NAME!="9801")
+
+durham_map_interactive_test <- durham_map_interactive_test %>% filter(black_adjusted_percent > 60)
+
+#Creating a color palette 
+pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive_test$black_adjusted_percent)
+
+#Creating a popup
+popup_durham_black_pop <- paste0("Census Tract: ",as.character(durham_map_interactive_test$NAME),"<br/> Residents that are Black (%): " ,as.character(durham_map_interactive_test$black_adjusted_percent))
+
+#Making the map 
+leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive_test,fillColor =~pal(durham_map_interactive_test$black_adjusted_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_black_pop) %>% addLegend(pal=pal,values=durham_map_interactive_test$black_adjusted_percent,position = "bottomright",title = "<br/> Distribution of <br/> Black residents <br/> in Durham County (%)")
+
+
+
+```
+
+
+#Find me the ten whitest census tracts. 
+```{r}
+
+#Outlining the tracts 
+durham_tracts <- tracts(state = "NC",county = "Durham",cb = T)
+
+#Combining the dataframes
+durham_map_interactive_test2 <- geo_join(durham_tracts,durham_white_population,"TRACTCE","tract") %>% filter(NAME!="9801")
+
+durham_map_interactive_test2 <- durham_map_interactive_test2 %>% filter(white_percent > 76)
+
+#Creating a color palette 
+pal <-colorNumeric(c("darkmagenta","yellow"),domain=durham_map_interactive_test2$white_percent)
+
+#Creating a popup
+popup_durham_test <- paste0("Census Tract: ",as.character(durham_map_interactive_test2$NAME),"<br/> Residents that are White (%): " ,as.character(durham_map_interactive_test2$white_percent))
+
+#Making the map 
+leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zoom =11) %>% addPolygons(data = durham_map_interactive_test2,fillColor =~pal(durham_map_interactive_test2$white_percent),fillOpacity = 1.5,weight = .2,smoothFactor=.2,popup =~ popup_durham_test) %>% addLegend(pal=pal,values=durham_map_interactive_test2$white_percent,position = "bottomright")
+
+
+
+```
+
+
+
+
+#Story structure game plan: Talk about two different census tracts. Set them up as different things,but kind of hide their identity -- mystery lede. Then hit with the news peg -- the temperature difference this causes. Then hit with resident anecdote. Then explain using context from interviews. Start with why UHI  happens biologically. Then why UHI happens politically. Then how people have tried to change it. And what can be done now. 
+
+
+
+
+
+
+
+
+
+
+
+
