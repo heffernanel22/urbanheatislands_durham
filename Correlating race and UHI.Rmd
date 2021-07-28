@@ -22,7 +22,7 @@ durham_tract_metrics$percent_canopy_coverage<-as.double(str_sub(durham_tract_met
 
 ```
 
-#Create a dataframe showing the percentage of people in each durham census tract that are white. You'll use this later to outline the whitest and least white census tracts on Dr. Doren's heat-map. 
+#Create a dataframe showing the percentage of people in each durham census tract that are white. You'll use this later to outline the whitest and least white census tracts on Dr. Doran's heat-map. 
 ```{r}
 nc_white_population <- getCensus(name = "acs/acs5",vintage = 2019,vars =c("B02008_001E"),region="tract",regionin="state:37")
 
@@ -83,50 +83,78 @@ durham_tract_metrics <- durham_tract_metrics %>% select(-B02008_001E,-B01003_001
 ```
 
 
+#I think the reason our data isn't showing as significant of correlations (I plotted and then came back here to adjust) is because white as a race can also include Latinx people, according to the Census. So theoretically we could have a census tract with a lot of Latinx people, and very few white, non-Latinx people--- so, predominantly people of color -- but the computer is understanding it as a predominantly white tract. Being predominantly Latinx could impact its metrics differently. So, I'm going to left_join in the dataframe showing the percentage of each census tract that is Black. 
+```{r}
+#Now we're going to left_join in the dataframe showing the percentage of each census tract that is Black. We'll have to make some edits. 
+
+#Splitting the tract column in half and adding decimal points and the word "Tract"
+durham_race_adjusted <- durham_race_adjusted %>% mutate(tracts_1 = str_sub(durham_race_adjusted$tract,3,4),tracts_2 = str_sub(durham_race_adjusted$tract,5,6),`Census Tracts` = paste0("Tract ",as.character(tracts_1),".",as.character(tracts_2)))
+
+#Realizing that one of the dataframes has numbers written like 06.00 and the other has them written like 6.00. Since they're characters the computer is confused, thinks they're different, and can't join. Let us change them with stringr! 
+durham_tract_metrics$`Census Tracts`<- str_replace_all(durham_tract_metrics$`Census Tracts`,"Tract 0","Tract ")
+durham_race_adjusted$`Census Tracts`<- str_replace_all(durham_race_adjusted$`Census Tracts`,"Tract 0","Tract ")
+
+#Successful join. Get rid of columns you don't need and rename the alphabet soup column before you get confused
+durham_tract_metrics <- left_join(durham_tract_metrics,durham_race_adjusted) 
+durham_tract_metrics <- durham_tract_metrics %>% select(-black_adjusted,-tracts_1,-tracts_2,-state,-county,-tract)
+```
+
+
+
+
 #Now we're going to plot a bunch of information to see if there is a CORRELATION between the percentage of each census tract's residents who are white & various other metrics. Each dot is a census tract. 
 ```{r}
 #Canopy coverage
-ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_canopy_coverage)) + geom_point() + geom_smooth(method = lm) + labs(title = "Canopy cover increases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of land covered by trees")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y = percent_canopy_coverage)) + geom_point() + geom_smooth(method = lm) + labs(title = "Canopy cover decreases as the percentage of Black people increases")+xlab("Percentage of census tract that is Black") + ylab("Percent of land covered by trees")
 
 #Percent impervious surface 
-ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_impervious_surface)) + geom_point() + geom_smooth(method = lm) + labs(title = "Impervious surface decreases  as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of land covered impervious surface")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y = percent_impervious_surface)) + geom_point() + geom_smooth(method = lm) + labs(title = "Impervious surface increases as the percentage of Black people increases")+xlab("Percentage of census tract that is Black") + ylab("Percent of land covered impervious surface")
 
 #Median household income 
-ggplot(durham_tract_metrics,aes(x = white_percent,y =median_household_income)) + geom_point() + geom_smooth(method = lm) + labs(title = "Median household income increases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Median household income")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y =median_household_income)) + geom_point() + geom_smooth(method = lm) + labs(title = "Median household income decreases as the percentage of Black people decreases")+xlab("Percentage of census tract that is Black") + ylab("Median household income")
 
 #Diabetes rates
-ggplot(durham_tract_metrics,aes(x = white_percent,y = percent_with_diabetes)) + geom_point() + geom_smooth(method = lm) + labs(title = "Diabetes rates increase as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of residents with diabetes")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y = percent_with_diabetes)) + geom_point() + geom_smooth(method = lm) + labs(title = "Diabetes rates increase as the percentage of Black people increases")+xlab("Percentage of census tract that is Black") + ylab("Percent of residents with diabetes")
 
 #People without health insurance
-ggplot(durham_tract_metrics,aes(x = white_percent,y = healthcare_adjusted)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of residents without health insurance decreases as the percentage of white people increases")+xlab("Percentage of census tract that is white") + ylab("Percent of residents without health insurance")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y = healthcare_adjusted)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of residents without health insurance increases as the percentage of Black people increases")+xlab("Percentage of census tract that is Black") + ylab("Percent of residents without health insurance")
 
 
 #Median year built
-ggplot(durham_tract_metrics,aes(x = white_percent,y = median_year_built)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of older housing units seems relatively the same, regardless of the percentage of white residents")+xlab("Percentage of census tract that is white") + ylab("Median year that structures were built")
+ggplot(durham_tract_metrics,aes(x = black_adjusted_percent,y = median_year_built)) + geom_point() + geom_smooth(method = lm) + labs(title = "The percentage of older housing units seems slightly higher as,the percentage of Black residents increases")+xlab("Percentage of census tract that is Black") + ylab("Median year that structures were built")
 
 ```
 
 
-#Finally, we are going to calculate linear regressions for these plots. This will give us the slope (i.e how much more or less likely is your census tract to have this, depending on how white it is). It will also tell us our standard deviation (error rate) and our p-value (Are our findings significant? Or random!)
+#Find the mean values for the whitest and Blackest census tracts.Durham is, on average 39% White and 38% Black. I'm defining "Very white" and "very Black" as a census tract maintaining a percentage of one race that is twice as high as the county-wide average. That is ten white census tracts. And six Black census tracts. 
 ```{r}
-attach(durham_tract_metrics)
+mean_white_metrics <- durham_tract_metrics %>% arrange(desc(white_percent))
+mean_white_metrics <- mean_white_metrics[1:10,]
 
-#Calculating the slope 
-canopy <- lm(white_percent~percent_canopy_coverage)
-impervious <- lm(white_percent~percent_impervious_surface)
-household <- lm(white_percent~median_household_income)
-diabetes <- lm(white_percent~percent_with_diabetes)
-insurance <- lm(white_percent~healthcare_adjusted)
+white_surface <- mean(mean_white_metrics$percent_impervious_surface)
+white_canopy <- mean(mean_white_metrics$percent_canopy_coverage)
+white_household <- mean(mean_white_metrics$median_household_income)
+white_diabetes <- mean(mean_white_metrics$percent_with_diabetes)
+white_healthcare <- mean(mean_white_metrics$healthcare_adjusted)
+mean(mean_white_metrics$median_year_built)
 
-#Checking p-values and standard deviation
-summary(canopy)
-summary(impervious)
-summary(household)
-summary(diabetes)
-summary(insurance)
+
+
+mean_black_metrics <- durham_tract_metrics %>% arrange(desc(black_adjusted_percent))
+mean_black_metrics<- mean_black_metrics[1:6,]
+
+
+black_surface <- mean(mean_black_metrics$percent_impervious_surface)
+black_canopy<- mean(mean_black_metrics$percent_canopy_coverage)
+black_household<- mean(mean_black_metrics$median_household_income)
+black_diabetes <- mean(mean_black_metrics$percent_with_diabetes)
+black_healthcare <- mean(mean_black_metrics$healthcare_adjusted)
+mean(mean_black_metrics$median_year_built)
+
+
+
 
 ```
-
 
 
 #Find the census tract with the highest canopy coverage and tell me all about it. Same with the lowest canopy coverage. 
@@ -189,6 +217,15 @@ leaflet() %>% addProviderTiles("CartoDB.Positron") %>% setView(-78.999,36.055,zo
 
 
 ```
+
+
+
+
+
+
+
+
+
 
 
 

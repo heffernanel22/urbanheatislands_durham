@@ -96,7 +96,7 @@ durham_interactive_race_map <- leaflet() %>% addProviderTiles("CartoDB.Positron"
 ```
 
 
-#Finding the 15 Blackest census tracts and least Black census tracts We will use this later when we outline these tracts on Dr. Doran's map.  
+#Finding the 15 Blackest census tracts and least Black census tracts. We will use this later when we outline these tracts on Dr. Doran's map.  
 ```{r}
 #Arranging the dataframe in descending order of its Black population: 
 durham_race_adjusted %>% arrange(desc(black_adjusted_percent))

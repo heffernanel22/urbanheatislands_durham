@@ -1,0 +1,53 @@
+---
+title: "More recent temperature data"
+author: "Ellie "hacker(wo)man supreme" Heffernan"
+date: "7/22/2021"
+output: html_document
+---
+```{r}
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#I'm going to try and learn how to use a NetCDF file. Oh boy. The data is from this website: https://cds.climate.copernicus.eu/cdsapp#!/yourrequests?tab=form. Let's install and load some packages (fields & ncdf4) Fields refuses to work, so oh well :( 
+```{r}
+library(ncdf4)
+install.packages("spam", repo = 'https://mac.R-project.org')
+```
+
+#Loading in data & pulling separate variables
+```{r}
+durham_temperature <- nc_open("heat_data")
+
+lat <-ncvar_get(durham_temperature,"latitude") 
+
+lon <-ncvar_get(durham_temperature,"longitude") 
+
+time <- ncvar_get(durham_temperature,"time")
+
+temperature <- ncvar_get(durham_temperature,"t2m")
+#10:18
+
+
+```
+
+
+```{r}
+image.plot(lat,lon,temperature)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
